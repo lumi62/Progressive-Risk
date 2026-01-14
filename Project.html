@@ -1,0 +1,1568 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brain Shenanigans — Progressive Risk</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b1020;
+        --bg-soft: #111527;
+        --surface: rgba(21, 26, 43, 0.85);
+        --surface-strong: rgba(30, 37, 60, 0.95);
+        --accent: #6c63ff;
+        --accent-2: #4fd1c5;
+        --text: #e6e8eb;
+        --muted: #9aa6c4;
+        --success: #7effc5;
+        --danger: #ff93aa;
+        --shadow: 0 30px 80px rgba(3, 6, 18, 0.5);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+        background: radial-gradient(1200px 800px at 20% 0%, #1f2a52 0%, transparent 60%),
+          radial-gradient(1000px 700px at 90% 20%, #2b1d4d 0%, transparent 60%),
+          var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      .bg {
+        position: fixed;
+        inset: -20vmax;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .bg .orb {
+        position: absolute;
+        border-radius: 999px;
+        filter: blur(10px);
+        opacity: 0.8;
+        mix-blend-mode: screen;
+        animation: drift 18s ease-in-out infinite;
+      }
+
+      .bg .orb-1 {
+        width: clamp(240px, 35vmax, 520px);
+        height: clamp(240px, 35vmax, 520px);
+        top: 8%;
+        left: 6%;
+        background: radial-gradient(circle at 30% 30%, #7fd9ff, transparent 60%),
+          radial-gradient(circle at 70% 70%, #7b74ff, transparent 55%);
+        animation-duration: 20s;
+      }
+
+      .bg .orb-2 {
+        width: clamp(200px, 30vmax, 480px);
+        height: clamp(200px, 30vmax, 480px);
+        top: 55%;
+        left: 12%;
+        background: radial-gradient(circle at 30% 30%, #4fd1c5, transparent 60%),
+          radial-gradient(circle at 70% 70%, #5b8bff, transparent 55%);
+        animation-duration: 24s;
+        animation-delay: -8s;
+      }
+
+      .bg .orb-3 {
+        width: clamp(260px, 38vmax, 560px);
+        height: clamp(260px, 38vmax, 560px);
+        top: 10%;
+        right: 8%;
+        background: radial-gradient(circle at 30% 30%, #ff9ad1, transparent 60%),
+          radial-gradient(circle at 70% 70%, #6c63ff, transparent 55%);
+        animation-duration: 22s;
+        animation-delay: -6s;
+      }
+
+      .bg .orb-4 {
+        width: clamp(180px, 26vmax, 420px);
+        height: clamp(180px, 26vmax, 420px);
+        bottom: 8%;
+        right: 18%;
+        background: radial-gradient(circle at 30% 30%, #ffc27a, transparent 60%),
+          radial-gradient(circle at 70% 70%, #7b74ff, transparent 55%);
+        animation-duration: 26s;
+        animation-delay: -12s;
+      }
+
+      .bg .ring {
+        position: absolute;
+        border-radius: 999px;
+        border: 1px solid rgba(123, 212, 255, 0.25);
+        box-shadow: inset 0 0 60px rgba(123, 212, 255, 0.18);
+        animation: spin 26s linear infinite;
+      }
+
+      .bg .ring-1 {
+        width: clamp(280px, 34vmax, 640px);
+        height: clamp(280px, 34vmax, 640px);
+        top: 18%;
+        left: 45%;
+        animation-duration: 38s;
+      }
+
+      .bg .ring-2 {
+        width: clamp(220px, 28vmax, 520px);
+        height: clamp(220px, 28vmax, 520px);
+        bottom: 12%;
+        left: 32%;
+        border-color: rgba(255, 200, 120, 0.25);
+        box-shadow: inset 0 0 50px rgba(255, 200, 120, 0.18);
+        animation-direction: reverse;
+      }
+
+      .bg .streak {
+        position: absolute;
+        width: clamp(260px, 32vmax, 620px);
+        height: clamp(120px, 18vmax, 320px);
+        opacity: 0.35;
+        background: linear-gradient(110deg, transparent, rgba(123, 212, 255, 0.45), transparent);
+        transform: skewY(-6deg);
+        animation: sweep 16s ease-in-out infinite;
+      }
+
+      .bg .streak-1 {
+        top: 8%;
+        left: -10%;
+      }
+
+      .bg .streak-2 {
+        bottom: 12%;
+        right: -8%;
+        animation-delay: -7s;
+      }
+
+      .bg .mesh {
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+        background-size: 36px 36px;
+        opacity: 0.28;
+        animation: meshShift 22s linear infinite;
+      }
+
+      .bg .grain {
+        position: absolute;
+        inset: 0;
+        background-image: repeating-linear-gradient(
+            0deg,
+            rgba(255, 255, 255, 0.04),
+            rgba(255, 255, 255, 0.04) 1px,
+            transparent 1px,
+            transparent 2px
+          ),
+          repeating-linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.03),
+            rgba(255, 255, 255, 0.03) 1px,
+            transparent 1px,
+            transparent 2px
+          );
+        mix-blend-mode: soft-light;
+        opacity: 0.3;
+        animation: grainMove 14s steps(8) infinite;
+      }
+
+      .app {
+        width: min(1050px, 100%);
+        background: linear-gradient(160deg, rgba(17, 23, 45, 0.9), rgba(9, 12, 24, 0.95));
+        border-radius: 28px;
+        padding: 32px;
+        box-shadow: var(--shadow);
+        border: 1px solid rgba(123, 212, 255, 0.12);
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
+      }
+
+      .app::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(600px 400px at 80% -10%, rgba(123, 212, 255, 0.18), transparent 60%);
+        pointer-events: none;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 28px;
+      }
+
+      .title-block h1 {
+        font-size: clamp(1.8rem, 3vw, 2.6rem);
+        letter-spacing: -0.02em;
+      }
+
+      .title-block p {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .timer {
+        width: 120px;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 999px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .timer span {
+        position: absolute;
+        inset: 0;
+        transform-origin: left;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        border-radius: 999px;
+        transition: transform 0.25s linear;
+      }
+
+      .scene {
+        background: var(--surface);
+        border-radius: 24px;
+        padding: 30px;
+        display: grid;
+        gap: 22px;
+        border: 1px solid rgba(123, 212, 255, 0.08);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .scene::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, rgba(123, 212, 255, 0.08), transparent 60%);
+        opacity: 0;
+        transition: opacity 0.35s ease;
+        pointer-events: none;
+      }
+
+      .scene.active::after {
+        opacity: 1;
+      }
+
+      .scene h2 {
+        font-size: clamp(1.4rem, 2.4vw, 2rem);
+      }
+
+      .scene p {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .choices {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      }
+
+      .choice {
+        background: var(--surface-strong);
+        border-radius: 20px;
+        padding: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
+        position: relative;
+        overflow: hidden;
+        min-height: 140px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .choice:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 18px 40px rgba(5, 9, 30, 0.4);
+        border-color: rgba(123, 212, 255, 0.35);
+      }
+
+      .choice .tag {
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 0.2em;
+        color: var(--muted);
+      }
+
+      .choice .value {
+        font-size: 1.4rem;
+        font-weight: 600;
+      }
+
+      .choice .meta {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      .choice.safe {
+        border-left: 4px solid var(--success);
+      }
+
+      .choice.risk {
+        border-left: 4px solid var(--danger);
+      }
+
+      .outcome {
+        font-size: 0.95rem;
+        color: var(--muted);
+        min-height: 24px;
+      }
+
+      .outcome strong {
+        color: var(--text);
+      }
+
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+      }
+
+      button.ghost {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: var(--muted);
+        padding: 10px 16px;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: 0.2s ease;
+      }
+
+      button.ghost:hover {
+        color: var(--text);
+        border-color: rgba(123, 212, 255, 0.5);
+      }
+
+      .home {
+        display: grid;
+        gap: 18px;
+        text-align: left;
+      }
+
+      .home p {
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .home ul {
+        display: grid;
+        gap: 8px;
+        list-style: none;
+        color: var(--muted);
+        padding-left: 0;
+      }
+
+      .home li::before {
+        content: "•";
+        color: var(--accent);
+        margin-right: 8px;
+      }
+
+      .primary {
+        background: linear-gradient(120deg, var(--accent), var(--accent-2));
+        border: none;
+        color: #0b0e16;
+        font-weight: 600;
+        padding: 12px 22px;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        width: fit-content;
+      }
+
+      .primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 30px rgba(123, 212, 255, 0.25);
+      }
+
+      .modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(5, 8, 18, 0.7);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 20;
+      }
+
+      .modal.active {
+        display: flex;
+        animation: fadeIn 0.2s ease;
+      }
+
+      .modal-card {
+        background: var(--surface-strong);
+        border-radius: 22px;
+        padding: 24px;
+        width: min(420px, 95vw);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+      }
+
+      .modal-card.win {
+        border-color: rgba(126, 255, 197, 0.5);
+        box-shadow: 0 20px 50px rgba(24, 140, 110, 0.25);
+      }
+
+      .modal-card.loss {
+        border-color: rgba(255, 147, 170, 0.5);
+        box-shadow: 0 20px 50px rgba(180, 70, 90, 0.25);
+        animation: lossPulse 0.35s ease;
+      }
+
+      @keyframes lossPulse {
+        0% {
+          transform: scale(1);
+        }
+        30% {
+          transform: scale(1.02);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .confetti {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+
+      .confetti span {
+        position: absolute;
+        width: 8px;
+        height: 14px;
+        background: var(--accent);
+        opacity: 0.9;
+        animation: fall 1s ease-out forwards;
+      }
+
+      .confetti span:nth-child(odd) {
+        background: var(--accent-2);
+      }
+
+      @keyframes fall {
+        0% {
+          transform: translateY(-20px) rotate(0deg);
+          opacity: 0;
+        }
+        20% {
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(220px) rotate(280deg);
+          opacity: 0;
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes drift {
+        0% {
+          transform: translate3d(0, 0, 0) scale(1);
+        }
+        50% {
+          transform: translate3d(6%, -4%, 0) scale(1.05);
+        }
+        100% {
+          transform: translate3d(0, 0, 0) scale(1);
+        }
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes sweep {
+        0% {
+          transform: translateX(-8%) skewY(-6deg);
+          opacity: 0.2;
+        }
+        50% {
+          transform: translateX(10%) skewY(-6deg);
+          opacity: 0.5;
+        }
+        100% {
+          transform: translateX(-8%) skewY(-6deg);
+          opacity: 0.2;
+        }
+      }
+
+      @keyframes meshShift {
+        0% {
+          transform: translate3d(0, 0, 0);
+        }
+        100% {
+          transform: translate3d(4%, -4%, 0);
+        }
+      }
+
+      @keyframes grainMove {
+        0% {
+          transform: translate3d(0, 0, 0);
+        }
+        100% {
+          transform: translate3d(-2%, 2%, 0);
+        }
+      }
+
+      .dashboard {
+        display: none;
+        gap: 20px;
+      }
+
+      .dashboard.active {
+        display: grid;
+        animation: fadeIn 0.5s ease;
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      }
+
+      .card {
+        background: var(--surface);
+        border-radius: 20px;
+        padding: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .card h3 {
+        font-size: 1rem;
+        margin-bottom: 8px;
+      }
+
+      .card p {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .chart {
+        width: 100%;
+        height: 170px;
+        display: block;
+      }
+
+      .highlight {
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .snapshot {
+        background: linear-gradient(120deg, rgba(123, 212, 255, 0.12), rgba(181, 139, 255, 0.12));
+        border: 1px solid rgba(123, 212, 255, 0.2);
+      }
+
+      .insight-list {
+        list-style: none;
+        padding-left: 0;
+        display: grid;
+        gap: 6px;
+        color: var(--muted);
+      }
+
+      .insight-list li::before {
+        content: "•";
+        color: var(--accent);
+        margin-right: 8px;
+      }
+
+      @media (max-width: 720px) {
+        header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .actions {
+          justify-content: flex-start;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .bg .orb,
+        .bg .ring,
+        .bg .streak,
+        .bg .mesh,
+        .bg .grain {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg" aria-hidden="true">
+      <span class="orb orb-1"></span>
+      <span class="orb orb-2"></span>
+      <span class="orb orb-3"></span>
+      <span class="orb orb-4"></span>
+      <span class="ring ring-1"></span>
+      <span class="ring ring-2"></span>
+      <span class="streak streak-1"></span>
+      <span class="streak streak-2"></span>
+      <span class="mesh"></span>
+      <span class="grain"></span>
+    </div>
+    <div class="app">
+      <header>
+        <div class="title-block">
+          <h1>Progressive Risk</h1>
+          <p>Fast choices, rising stakes.</p>
+        </div>
+        <div class="status">
+          <div>Scene <span id="scene-count">1</span></div>
+          <div>Lives <span id="lives-count">6</span></div>
+          <div>Energy <span id="energy-total">0</span></div>
+          <div class="timer" aria-label="Timer">
+            <span id="timer-bar"></span>
+          </div>
+          <div id="timer-text">9.0s</div>
+        </div>
+      </header>
+
+      <section id="home" class="scene home active">
+        <h2>Start the simulation</h2>
+        <p>
+          You will make fast choices between a safer option and a riskier option.
+          You have limited lives, so every miss matters. There are no right answers.
+          Trust your instincts and move quickly.
+        </p>
+        <ul>
+          <li>Probabilities are shown clearly for every option.</li>
+          <li>The timer speeds up as pressure increases.</li>
+          <li>If time runs out, the safe choice is selected automatically and still costs a life on a loss.</li>
+        </ul>
+        <div class="actions">
+          <button class="primary" id="start-btn">Start</button>
+        </div>
+      </section>
+
+      <section id="game" class="scene" style="display: none">
+        <h2 id="scene-title">Loading...</h2>
+        <p id="scene-copy"></p>
+        <div class="choices">
+          <button class="choice safe" id="choice-safe">
+            <span class="tag">Safe</span>
+            <span class="value" id="safe-value"></span>
+            <span class="meta" id="safe-meta"></span>
+          </button>
+          <button class="choice risk" id="choice-risk">
+            <span class="tag">Risk</span>
+            <span class="value" id="risk-value"></span>
+            <span class="meta" id="risk-meta"></span>
+          </button>
+        </div>
+        <div class="outcome" id="outcome"></div>
+        <div class="actions">
+          <button class="ghost" id="exit-btn">Exit + View Results</button>
+        </div>
+      </section>
+
+      <section id="dashboard" class="dashboard">
+        <div class="scene snapshot">
+          <h2>Player Profile</h2>
+          <p id="snapshot-text"></p>
+          <ul class="insight-list" id="profile-bullets"></ul>
+        </div>
+        <div class="scene">
+          <h2>Tension & Release Map</h2>
+          <svg class="chart" id="risk-chart" viewBox="0 0 600 170" preserveAspectRatio="none"></svg>
+          <p id="tension-text"></p>
+        </div>
+        <div class="grid">
+          <div class="card">
+            <h3>Decision Patterns</h3>
+            <p id="decision-patterns"></p>
+          </div>
+          <div class="card">
+            <h3>Speed & Timing</h3>
+            <p id="speed-insights"></p>
+          </div>
+          <div class="card">
+            <h3>Choice Consistency</h3>
+            <p id="consistency-insights"></p>
+          </div>
+          <div class="card">
+            <h3>Almost-Wins & Near-Misses</h3>
+            <p id="near-misses"></p>
+          </div>
+          <div class="card">
+            <h3>Addiction Loop Summary</h3>
+            <p id="loop-summary"></p>
+          </div>
+          <div class="card">
+            <h3>Next-Run Teaser</h3>
+            <p id="next-teaser"></p>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="ghost" id="restart-btn">Run Again</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal" id="result-modal">
+      <div class="modal-card" id="modal-card">
+        <div class="confetti" id="confetti"></div>
+        <h3 id="modal-title">Outcome</h3>
+        <p id="modal-body"></p>
+      </div>
+    </div>
+
+    <script>
+      const maxLives = 6;
+      const sceneCountEl = document.getElementById("scene-count");
+      const livesCountEl = document.getElementById("lives-count");
+      const timerBar = document.getElementById("timer-bar");
+      const timerText = document.getElementById("timer-text");
+      const energyTotal = document.getElementById("energy-total");
+      const outcomeEl = document.getElementById("outcome");
+      const gameSection = document.getElementById("game");
+      const dashboard = document.getElementById("dashboard");
+      const homeSection = document.getElementById("home");
+      const snapshotText = document.getElementById("snapshot-text");
+      const profileBullets = document.getElementById("profile-bullets");
+      const decisionPatterns = document.getElementById("decision-patterns");
+      const speedInsights = document.getElementById("speed-insights");
+      const consistencyInsights = document.getElementById("consistency-insights");
+      const nearMisses = document.getElementById("near-misses");
+      const loopSummary = document.getElementById("loop-summary");
+      const nextTeaser = document.getElementById("next-teaser");
+      const riskChart = document.getElementById("risk-chart");
+      const tensionText = document.getElementById("tension-text");
+      const resultModal = document.getElementById("result-modal");
+      const modalCard = document.getElementById("modal-card");
+      const modalTitle = document.getElementById("modal-title");
+      const modalBody = document.getElementById("modal-body");
+      const confetti = document.getElementById("confetti");
+
+      const sceneTitle = document.getElementById("scene-title");
+      const sceneCopy = document.getElementById("scene-copy");
+      const safeValue = document.getElementById("safe-value");
+      const safeMeta = document.getElementById("safe-meta");
+      const riskValue = document.getElementById("risk-value");
+      const riskMeta = document.getElementById("risk-meta");
+      const choiceSafe = document.getElementById("choice-safe");
+      const choiceRisk = document.getElementById("choice-risk");
+      const exitBtn = document.getElementById("exit-btn");
+      const restartBtn = document.getElementById("restart-btn");
+      const startBtn = document.getElementById("start-btn");
+
+      let currentIndex = 0;
+      let timerId = null;
+      let startTime = null;
+      let remaining = 9;
+      let sessionLog = [];
+      let totalEnergy = 0;
+      let pendingAdvance = null;
+      let modalTimer = null;
+      let lives = maxLives;
+      let currentScene = null;
+      let missStreak = 0;
+      let pressureLevel = 0;
+      let lossStreak = 0;
+
+      function updateLivesUI() {
+        livesCountEl.textContent = lives;
+      }
+
+      updateLivesUI();
+
+      function formatChance(chance) {
+        return chance >= 0.55 ? "High chance" : "Low chance";
+      }
+
+      function mapDisplayedChance(displayChance) {
+        const k = 4.4;
+        const midpoint = 0.5;
+        const curve = 1 / (1 + Math.exp(-k * (displayChance - midpoint)));
+        return clamp(0.08, 0.92, curve);
+      }
+
+      function computeEffectiveChance(displayChance, type) {
+        const base = mapDisplayedChance(displayChance);
+        const pressureGain = type === "risk" ? 0.18 : 0.11;
+        const streakAssist = Math.min(0.14, lossStreak * 0.04);
+        const pressureAssist = pressureLevel * pressureGain + pressureLevel * pressureLevel * 0.08;
+        return clamp(0.08, 0.92, base + streakAssist + pressureAssist);
+      }
+
+      function updatePressureOnOutcome({ win, type }) {
+        if (win) {
+          pressureLevel = 0;
+          lossStreak = 0;
+          return;
+        }
+        const gain = type === "risk" ? 0.2 : 0.12;
+        const streakBonus = Math.min(0.18, lossStreak * 0.05);
+        pressureLevel = clamp(0, 1, pressureLevel + gain + streakBonus);
+        lossStreak += 1;
+      }
+
+      function resolveOutcome({ displayChance, type }) {
+        const effectiveChance = computeEffectiveChance(displayChance, type);
+        const miracle =
+          displayChance <= 0.35 && pressureLevel >= 0.65 && Math.random() < 0.08;
+        const denyHigh =
+          displayChance >= 0.7 && pressureLevel <= 0.25 && Math.random() < 0.07;
+        const win = miracle ? true : denyHigh ? false : Math.random() < effectiveChance;
+        return { win, effectiveChance, miracle, denyHigh };
+      }
+
+      function generateScene(index) {
+        const baseEv = 20 + index * 4;
+        const riskChance = clamp(0.15, 0.45, 0.45 - index * 0.012 + Math.random() * 0.06);
+        const safeChance = clamp(riskChance + 0.22, 0.88, riskChance + 0.28);
+        const riskReward = Math.round(baseEv / riskChance);
+        const safeReward = Math.round((baseEv * 0.8) / safeChance);
+        return {
+          title: `Scene ${index + 1}`,
+          copy: "Choose quickly. Odds and stakes shift every round.",
+          safe: { reward: safeReward, chance: safeChance },
+          risk: { reward: riskReward, chance: riskChance },
+        };
+      }
+
+      function loadScene(index) {
+        const scene = generateScene(index);
+        currentScene = scene;
+        currentIndex = index;
+        sceneCountEl.textContent = index + 1;
+        sceneTitle.textContent = scene.title;
+        sceneCopy.textContent = scene.copy;
+        safeValue.textContent = `+${scene.safe.reward} energy`;
+        safeMeta.textContent = formatChance(scene.safe.chance);
+        riskValue.textContent = `+${scene.risk.reward} energy`;
+        riskMeta.textContent = formatChance(scene.risk.chance);
+        outcomeEl.textContent = "";
+        gameSection.classList.add("active");
+        startTimer();
+      }
+
+      function timerForIndex(index) {
+        const base = 9;
+        const min = 4.5;
+        const drop = 0.25;
+        return Math.max(min, base - drop * index);
+      }
+
+      function startTimer() {
+        clearInterval(timerId);
+        remaining = timerForIndex(currentIndex);
+        startTime = performance.now();
+        updateTimerUI();
+        timerId = setInterval(() => {
+          remaining -= 0.1;
+          if (remaining <= 0) {
+            clearInterval(timerId);
+            autoSelectSafe();
+            return;
+          }
+          updateTimerUI();
+        }, 100);
+      }
+
+      function updateTimerUI() {
+        const max = timerForIndex(currentIndex);
+        const ratio = Math.max(0, remaining / max);
+        timerBar.style.transform = `scaleX(${ratio})`;
+        timerText.textContent = `${remaining.toFixed(1)}s`;
+      }
+
+      function handleChoice(type, timeout = false) {
+        clearInterval(timerId);
+        const choice = type === "safe" ? currentScene.safe : currentScene.risk;
+        const pressureBefore = pressureLevel;
+        const resolution = resolveOutcome({ displayChance: choice.chance, type });
+        const win = resolution.win;
+        const rt = Math.round(performance.now() - startTime);
+        const rewardEarned = win ? choice.reward : 0;
+        totalEnergy += rewardEarned;
+        energyTotal.textContent = totalEnergy;
+        updatePressureOnOutcome({ win, type });
+        missStreak = win ? 0 : missStreak + 1;
+        if (!win) {
+          lives -= 1;
+          lives = Math.max(0, lives);
+          updateLivesUI();
+        }
+        const outcomeText = win ? `+${choice.reward} energy` : "0 energy";
+        outcomeEl.innerHTML = timeout
+          ? `<strong>Auto-selected:</strong> ${outcomeText}`
+          : `<strong>Outcome:</strong> ${outcomeText}`;
+
+        sessionLog.push({
+          scene: currentIndex + 1,
+          choice: type,
+          probability: choice.chance,
+          effectiveChance: resolution.effectiveChance,
+          reward: choice.reward,
+          outcome: win ? "win" : "loss",
+          partialReward: 0,
+          pressure: pressureBefore,
+          miracle: resolution.miracle,
+          denied: resolution.denyHigh,
+          reactionTime: rt,
+          timeLimit: timerForIndex(currentIndex),
+          timeout,
+          riskLevel: type === "risk" ? 1 : 0,
+        });
+
+        pendingAdvance = () => {
+          if (lives > 0) {
+            loadScene(currentIndex + 1);
+          } else {
+            showDashboard();
+          }
+        };
+
+        showResultModal({ win, reward: choice.reward, timeout });
+      }
+
+      function autoSelectSafe() {
+        handleChoice("safe", true);
+      }
+
+      function showDashboard() {
+        clearInterval(timerId);
+        gameSection.style.display = "none";
+        dashboard.classList.add("active");
+        renderDashboard();
+      }
+
+      function showResultModal({ win, reward, timeout }) {
+        clearTimeout(modalTimer);
+        confetti.innerHTML = "";
+        modalCard.classList.remove("win", "loss");
+        if (win) {
+          modalCard.classList.add("win");
+          modalTitle.textContent = "Win";
+          modalBody.textContent = timeout
+            ? `Auto-selected and secured +${reward} energy.`
+            : `You gained +${reward} energy.`;
+          spawnConfetti();
+        } else {
+          modalCard.classList.add("loss");
+          modalTitle.textContent = "Loss";
+          modalBody.textContent = timeout
+            ? "Auto-selected and no energy gained."
+            : "No energy gained this round.";
+        }
+        resultModal.classList.add("active");
+        modalTimer = setTimeout(closeResultModal, 1500);
+      }
+
+      function closeResultModal() {
+        resultModal.classList.remove("active");
+        if (pendingAdvance) {
+          const advance = pendingAdvance;
+          pendingAdvance = null;
+          setTimeout(advance, 150);
+        }
+      }
+
+      function spawnConfetti() {
+        const count = 24;
+        for (let i = 0; i < count; i += 1) {
+          const piece = document.createElement("span");
+          piece.style.left = `${Math.random() * 100}%`;
+          piece.style.top = `${-10 - Math.random() * 40}px`;
+          piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+          piece.style.animationDelay = `${Math.random() * 0.2}s`;
+          confetti.appendChild(piece);
+        }
+      }
+
+      function avg(arr) {
+        if (!arr.length) return null;
+        return arr.reduce((a, b) => a + b, 0) / arr.length;
+      }
+
+      function median(arr) {
+        if (!arr.length) return null;
+        const sorted = [...arr].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        if (sorted.length % 2 === 0) {
+          return (sorted[mid - 1] + sorted[mid]) / 2;
+        }
+        return sorted[mid];
+      }
+
+      function renderDashboard() {
+        renderRiskChart();
+        if (!sessionLog.length) return;
+
+        const phases = {
+          early: [],
+          mid: [],
+          late: [],
+        };
+        sessionLog.forEach((entry, index) => {
+          const ratio = index / Math.max(1, sessionLog.length - 1);
+          const phase = ratio < 0.34 ? "early" : ratio < 0.67 ? "mid" : "late";
+          phases[phase].push(entry);
+        });
+
+        const riskRate = avg(sessionLog.map((s) => s.riskLevel));
+        const riskRateEarly = avg(phases.early.map((s) => s.riskLevel)) || 0;
+        const riskRateMid = avg(phases.mid.map((s) => s.riskLevel)) || 0;
+        const riskRateLate = avg(phases.late.map((s) => s.riskLevel)) || 0;
+
+        let switchCount = 0;
+        let longestStreak = 1;
+        let currentStreak = 1;
+        for (let i = 1; i < sessionLog.length; i += 1) {
+          if (sessionLog[i].choice === sessionLog[i - 1].choice) {
+            currentStreak += 1;
+            longestStreak = Math.max(longestStreak, currentStreak);
+          } else {
+            switchCount += 1;
+            currentStreak = 1;
+          }
+        }
+        const switchRate = sessionLog.length > 1 ? switchCount / (sessionLog.length - 1) : 0;
+        const patternLocked = riskRate <= 0.15 || riskRate >= 0.85 || switchRate <= 0.2;
+
+        const afterWin = [];
+        const afterLoss = [];
+        for (let i = 1; i < sessionLog.length; i += 1) {
+          const prev = sessionLog[i - 1];
+          const current = sessionLog[i];
+          if (prev.outcome === "win") afterWin.push(current.riskLevel);
+          if (prev.outcome === "loss") afterLoss.push(current.riskLevel);
+        }
+        const winAvg = avg(afterWin);
+        const lossAvg = avg(afterLoss);
+
+        const avgPressureRisk = avg(
+          sessionLog.filter((s) => s.riskLevel === 1).map((s) => s.pressure)
+        );
+        const avgPressureSafe = avg(
+          sessionLog.filter((s) => s.riskLevel === 0).map((s) => s.pressure)
+        );
+
+        const peakPressureEntry = sessionLog.reduce((best, entry) => {
+          if (!best || entry.pressure > best.pressure) return entry;
+          return best;
+        }, null);
+
+        let longestDryStreak = 0;
+        let currentDry = 0;
+        let biggestRelease = null;
+        sessionLog.forEach((entry) => {
+          if (entry.outcome === "loss") {
+            currentDry += 1;
+            longestDryStreak = Math.max(longestDryStreak, currentDry);
+          } else {
+            if (!biggestRelease || entry.reward > biggestRelease.reward) {
+              biggestRelease = entry;
+            }
+            currentDry = 0;
+          }
+        });
+
+        const nearMissList = sessionLog.filter(
+          (s) => s.outcome === "loss" && (s.effectiveChance >= 0.6 || s.pressure >= 0.6)
+        );
+        const pressureWins = sessionLog.filter(
+          (s) => s.outcome === "win" && s.pressure >= 0.6
+        );
+
+        const manualEntries = sessionLog.filter((s) => !s.timeout);
+        const reactionTimes = manualEntries.map((s) => s.reactionTime);
+        const reactionRatios = manualEntries.map(
+          (s) => s.reactionTime / (s.timeLimit * 1000)
+        );
+        const avgRt = avg(reactionTimes);
+        const medianRt = median(reactionTimes);
+        const medianRtRatio = median(reactionRatios);
+        const fastestRt = reactionTimes.length ? Math.min(...reactionTimes) : null;
+        const slowestRt = reactionTimes.length ? Math.max(...reactionTimes) : null;
+        const timeouts = sessionLog.length - manualEntries.length;
+
+        const medianEarlyRt = median(phases.early.filter((s) => !s.timeout).map((s) => s.reactionTime));
+        const medianLateRt = median(phases.late.filter((s) => !s.timeout).map((s) => s.reactionTime));
+        const speedShift =
+          medianEarlyRt && medianLateRt ? (medianLateRt - medianEarlyRt) / medianEarlyRt : 0;
+
+        const recentChoices = sessionLog.slice(-3).map((s) => s.choice);
+        const lastEntry = sessionLog[sessionLog.length - 1];
+        const prevEntry = sessionLog.length > 1 ? sessionLog[sessionLog.length - 2] : null;
+
+        const loopCount = (() => {
+          let loops = 0;
+          let state = "idle";
+          for (let i = 0; i < sessionLog.length; i += 1) {
+            const entry = sessionLog[i];
+            if (state === "idle" && entry.outcome === "loss") {
+              state = "miss";
+              continue;
+            }
+            if (state === "miss" && entry.riskLevel === 1) {
+              state = "risk";
+              continue;
+            }
+            if (state === "risk" && entry.outcome === "win") {
+              loops += 1;
+              state = "idle";
+            }
+          }
+          return loops;
+        })();
+
+        const profile = buildProfile({
+          riskRate,
+          lateRisk: riskRateLate,
+          lossAvg,
+          winAvg,
+          avgPressureRisk,
+          avgPressureSafe,
+          switchRate,
+          patternLocked,
+          timeouts,
+          medianRtRatio,
+        });
+
+        snapshotText.textContent = profile.title;
+        profileBullets.innerHTML = profile.bullets.map((b) => `<li>${b}</li>`).join("");
+
+        decisionPatterns.textContent = [
+          describePhaseRisk({ riskRateEarly, riskRateMid, riskRateLate, patternLocked }),
+          describeSwitching({ switchRate, longestStreak }),
+          describeLossShift({ lossAvg, winAvg }),
+        ].join(" ");
+
+        speedInsights.textContent = buildSpeedText({
+          avgRt,
+          medianRt,
+          medianRtRatio,
+          fastestRt,
+          slowestRt,
+          speedShift,
+          timeouts,
+        });
+
+        consistencyInsights.textContent = buildConsistencyText({
+          riskRate,
+          switchRate,
+          longestStreak,
+          recentChoices,
+          lastEntry,
+          prevEntry,
+          patternLocked,
+        });
+
+        tensionText.textContent = buildTensionText({
+          peakPressureEntry,
+          longestDryStreak,
+          biggestRelease,
+          endedOnWin: sessionLog[sessionLog.length - 1].outcome === "win",
+        });
+
+        nearMisses.textContent = buildNearMissText({ nearMissList, pressureWins });
+
+        loopSummary.textContent = `Anticipation -> Miss -> Pressure -> Risk -> Release. Completed ${loopCount} ${loopCount === 1 ? "cycle" : "cycles"} this run.`;
+
+        nextTeaser.textContent = buildNextRunTeaser({
+          riskRateEarly,
+          riskRateLate,
+          peakPressureEntry,
+          pressureWins,
+          patternLocked,
+          timeouts,
+        });
+
+        const summary = {
+          profile: profile.title,
+          profileBullets: profile.bullets,
+          riskRates: { early: riskRateEarly, mid: riskRateMid, late: riskRateLate },
+          switching: { rate: switchRate, longestStreak },
+          speed: { medianMs: medianRt, medianRatio: medianRtRatio, timeouts },
+          pressure: { avgRisk: avgPressureRisk, avgSafe: avgPressureSafe },
+          nearMisses: nearMissList.map((s) => s.scene),
+          pressureWins: pressureWins.map((s) => s.scene),
+          loopCount,
+        };
+        window.runInsights = summary;
+        dashboard.dataset.summary = JSON.stringify(summary);
+      }
+
+      function describePhaseRisk({ riskRateEarly, riskRateMid, riskRateLate, patternLocked }) {
+        if (patternLocked) {
+          return "You stayed on one track, so there were no meaningful phase shifts.";
+        }
+        const early =
+          riskRateEarly > 0.55 ? "risk-heavy" : riskRateEarly < 0.45 ? "safe-first" : "balanced";
+        const late =
+          riskRateLate > 0.55 ? "risk-forward" : riskRateLate < 0.45 ? "safe-leaning" : "steady";
+        if (early !== late) {
+          return `You opened ${early} and finished ${late}.`;
+        }
+        if (riskRateMid > 0.6 && riskRateEarly < 0.45) {
+          return "You started cautious, then moved into risk mid-run.";
+        }
+        return `You stayed ${late} across the run, even as pressure changed.`;
+      }
+
+      function describeSwitching({ switchRate, longestStreak }) {
+        const switchPct = Math.round(switchRate * 100);
+        if (switchRate < 0.2) {
+          return `You rarely switched (${switchPct}% switching), with a ${longestStreak}-turn streak.`;
+        }
+        if (switchRate > 0.6) {
+          return `You switched often (${switchPct}% switching), keeping streaks short.`;
+        }
+        return `You switched at a steady pace (${switchPct}% switching), with a ${longestStreak}-turn streak.`;
+      }
+
+      function describePressurePull({ avgPressureRisk, avgPressureSafe }) {
+        if (avgPressureRisk === null || avgPressureSafe === null) {
+          return "Pressure effects are still emerging.";
+        }
+        if (avgPressureRisk > avgPressureSafe + 0.1) {
+          return "You reached for risk when pressure crept higher.";
+        }
+        if (avgPressureSafe > avgPressureRisk + 0.1) {
+          return "Higher pressure made you pull back to safety.";
+        }
+        return "Pressure nudged you, but it did not dominate your choices.";
+      }
+
+      function describeLossShift({ lossAvg, winAvg }) {
+        if (lossAvg === null || winAvg === null) {
+          return "Not enough swings yet to show how losses changed your choices.";
+        }
+        if (lossAvg > winAvg + 0.15) {
+          return "After losses, you took bigger risks.";
+        }
+        if (winAvg > lossAvg + 0.15) {
+          return "After losses, you played it safer.";
+        }
+        return "Losses did not change your risk level much.";
+      }
+
+      function buildProfile({
+        riskRate,
+        lateRisk,
+        lossAvg,
+        winAvg,
+        avgPressureRisk,
+        avgPressureSafe,
+        switchRate,
+        patternLocked,
+        timeouts,
+        medianRtRatio,
+      }) {
+        let title = "Calculated Gambler";
+        const bullets = [];
+
+        if (patternLocked) {
+          title = "Single-Track Runner";
+          bullets.push("You stuck with the same lane, so the read is narrower.");
+        } else if (lateRisk > 0.6 && riskRate > 0.55) {
+          title = "Late-Game Risk Taker";
+          bullets.push("Your boldest choices came after the stakes rose.");
+        } else if (riskRate < 0.4) {
+          title = "Loss-Avoidant Optimizer";
+          bullets.push("You protected progress more than you chased spikes.");
+        } else if (lossAvg !== null && winAvg !== null && lossAvg > winAvg + 0.15) {
+          title = "Pressure-Driven";
+          bullets.push("Losses pulled you into bigger swings.");
+        } else {
+          bullets.push("You balanced payoff and safety without locking into one style.");
+        }
+
+        if (patternLocked) {
+          bullets.push(
+            switchRate < 0.2
+              ? "Switching was rare, so outcomes reflect repetition more than adjustment."
+              : "You stuck to a lane even when pressure shifted."
+          );
+        } else if (avgPressureRisk !== null && avgPressureSafe !== null) {
+          if (avgPressureRisk > avgPressureSafe + 0.1) {
+            bullets.push("Higher pressure nudged you toward risk.");
+          } else if (avgPressureSafe > avgPressureRisk + 0.1) {
+            bullets.push("Higher pressure nudged you toward safety.");
+          } else {
+            bullets.push("You stayed measured even as tension built.");
+          }
+        }
+
+        if (timeouts > 0) {
+          bullets.push("Timeouts counted as safe, so timing insights are incomplete.");
+        } else if (medianRtRatio !== null) {
+          const pace = medianRtRatio < 0.45 ? "fast" : medianRtRatio > 0.75 ? "deliberate" : "steady";
+          bullets.push(`Your pace stayed ${pace}.`);
+        } else {
+          bullets.push("Your run shows a steady loop of anticipation and reset.");
+        }
+
+        return { title, bullets: bullets.slice(0, 3) };
+      }
+
+      function buildTensionText({ peakPressureEntry, longestDryStreak, biggestRelease, endedOnWin }) {
+        const peakText = peakPressureEntry
+          ? "Pressure hit a clear peak mid-run."
+          : "Pressure never spiked into a clear peak.";
+        const releaseText = biggestRelease
+          ? "Your biggest release arrived after pressure built up."
+          : "Releases were smaller but frequent.";
+        const dryText =
+          longestDryStreak > 0
+            ? `The longest dry stretch lasted ${longestDryStreak} turns.`
+            : "You avoided long dry stretches.";
+        const endText = endedOnWin
+          ? "The run ended on relief."
+          : "The run ended on tension, keeping the loop open.";
+        return `${peakText} ${releaseText} ${dryText} ${endText}`;
+      }
+
+      function buildNearMissText({ nearMissList, pressureWins }) {
+        const parts = [];
+        if (nearMissList.length) {
+          parts.push("Near-misses clustered when pressure was already high.");
+        } else {
+          parts.push("Near-misses were rare, so losses felt cleaner.");
+        }
+        parts.push("Losses paid nothing this run, so closeness came from pressure spikes.");
+        if (pressureWins.length) {
+          parts.push("Wins at high pressure landed right after tension climbed.");
+        } else {
+          parts.push("High-pressure wins stayed just out of reach.");
+        }
+        parts.push("These moments are why losses still felt close.");
+        return parts.join(" ");
+      }
+
+      function formatChoice(choice) {
+        return choice === "risk" ? "Risk" : "Safe";
+      }
+
+      function buildSpeedText({
+        avgRt,
+        medianRt,
+        medianRtRatio,
+        fastestRt,
+        slowestRt,
+        speedShift,
+        timeouts,
+      }) {
+        if (avgRt === null) {
+          return "No manual clicks recorded yet.";
+        }
+        const ratioPct = medianRtRatio === null ? 0 : Math.round(medianRtRatio * 100);
+        const pace =
+          speedShift > 0.12
+            ? "You slowed down as the run went on."
+            : speedShift < -0.12
+              ? "You sped up as the run went on."
+              : "Your pace stayed steady.";
+        const timeoutText =
+          timeouts > 0 ? `Timeouts: ${timeouts}.` : "No timeouts recorded.";
+        return `Median click: ${Math.round(medianRt)}ms (${ratioPct}% of the timer). ${pace} Range: ${Math.round(
+          fastestRt
+        )}-${Math.round(slowestRt)}ms. ${timeoutText}`;
+      }
+
+      function buildConsistencyText({
+        riskRate,
+        switchRate,
+        longestStreak,
+        recentChoices,
+        lastEntry,
+        prevEntry,
+        patternLocked,
+      }) {
+        const riskPct = Math.round(riskRate * 100);
+        const switchPct = Math.round(switchRate * 100);
+        const recentText = recentChoices.length
+          ? `Recent picks: ${recentChoices.map(formatChoice).join(", ")}.`
+          : "";
+        const lastText = lastEntry
+          ? `Last pick: ${formatChoice(lastEntry.choice)}${
+              prevEntry ? ` after ${formatChoice(prevEntry.choice)}.` : "."
+            }`
+          : "";
+
+        if (patternLocked) {
+          return `You stayed on one track (${riskPct}% risk, ${switchPct}% switching). Longest streak: ${longestStreak}. ${lastText} ${recentText} Mix choices for a fuller read.`;
+        }
+        return `You chose risk ${riskPct}% of the time and switched ${switchPct}% of the time. Longest streak: ${longestStreak}. ${lastText} ${recentText}`;
+      }
+
+      function buildNextRunTeaser({
+        riskRateEarly,
+        riskRateLate,
+        peakPressureEntry,
+        pressureWins,
+        patternLocked,
+        timeouts,
+      }) {
+        if (patternLocked) {
+          return "Mix your choices next run to unlock deeper insights.";
+        }
+        if (timeouts > 0) {
+          return "Faster clicks will reveal more about your risk rhythm.";
+        }
+        if (riskRateEarly < 0.4 && riskRateLate > 0.55) {
+          return "Push risk earlier to reach your peak sooner.";
+        }
+        if (pressureWins.length === 0 && peakPressureEntry) {
+          return "You stopped just before your pressure advantage zone.";
+        }
+        if (riskRateLate < 0.45) {
+          return "A late push could turn your steady run into a bigger release.";
+        }
+        return "One more run to see if the pressure spike finally pays off.";
+      }
+
+      function renderRiskChart() {
+        const width = 600;
+        const height = 170;
+        const padding = 30;
+        const points = sessionLog.map((s, index) => {
+          const x =
+            padding +
+            (index / Math.max(1, sessionLog.length - 1)) * (width - padding * 2);
+          const y = height - padding - s.pressure * (height - padding * 2);
+          return { x, y };
+        });
+
+        const path = buildSmoothPath(points);
+
+        riskChart.innerHTML = `
+          <defs>
+            <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="${getComputedStyle(document.documentElement).getPropertyValue(
+                "--accent"
+              )}" />
+              <stop offset="100%" stop-color="${getComputedStyle(
+                document.documentElement
+              ).getPropertyValue("--accent-2")}" />
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" width="${width}" height="${height}" rx="16" fill="rgba(10, 14, 28, 0.6)" />
+          <path d="${path}" fill="none" stroke="url(#lineGrad)" stroke-width="3" />
+          ${points
+            .map(
+              (p) =>
+                `<circle cx="${p.x}" cy="${p.y}" r="5" fill="rgba(123, 212, 255, 0.9)" />`
+            )
+            .join("")}
+          <text x="${padding}" y="${height - 10}" fill="${getComputedStyle(
+            document.documentElement
+          ).getPropertyValue("--muted")}" font-size="11">Low tension</text>
+          <text x="${padding}" y="20" fill="${getComputedStyle(
+            document.documentElement
+          ).getPropertyValue("--muted")}" font-size="11">High tension</text>
+        `;
+      }
+
+      function buildSmoothPath(points) {
+        if (!points.length) return "";
+        if (points.length === 1) {
+          return `M${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+        }
+        let d = `M${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+        for (let i = 0; i < points.length - 1; i += 1) {
+          const p0 = points[i - 1] || points[i];
+          const p1 = points[i];
+          const p2 = points[i + 1];
+          const p3 = points[i + 2] || p2;
+          const cp1x = p1.x + (p2.x - p0.x) / 6;
+          const cp1y = p1.y + (p2.y - p0.y) / 6;
+          const cp2x = p2.x - (p3.x - p1.x) / 6;
+          const cp2y = p2.y - (p3.y - p1.y) / 6;
+          d += ` C${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(
+            1
+          )} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+        }
+        return d;
+      }
+
+      function clamp(min, max, value) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      choiceSafe.addEventListener("click", () => handleChoice("safe"));
+      choiceRisk.addEventListener("click", () => handleChoice("risk"));
+      exitBtn.addEventListener("click", showDashboard);
+      startBtn.addEventListener("click", () => {
+        homeSection.style.display = "none";
+        gameSection.style.display = "grid";
+        lives = maxLives;
+        missStreak = 0;
+        pressureLevel = 0;
+        lossStreak = 0;
+        updateLivesUI();
+        loadScene(0);
+      });
+      restartBtn.addEventListener("click", () => {
+        sessionLog = [];
+        currentIndex = 0;
+        totalEnergy = 0;
+        energyTotal.textContent = totalEnergy;
+        lives = maxLives;
+        missStreak = 0;
+        pressureLevel = 0;
+        lossStreak = 0;
+        updateLivesUI();
+        dashboard.classList.remove("active");
+        dashboard.style.display = "none";
+        homeSection.style.display = "grid";
+        gameSection.style.display = "none";
+      });
+
+      homeSection.style.display = "grid";
+    </script>
+  </body>
+</html>
