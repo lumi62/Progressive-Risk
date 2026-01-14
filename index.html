@@ -623,6 +623,48 @@
           align-items: flex-start;
         }
 
+        .app {
+          padding: 20px;
+        }
+
+        .status {
+          flex-wrap: wrap;
+          gap: 10px 16px;
+        }
+
+        .timer {
+          width: 100%;
+        }
+
+        .scene {
+          padding: 22px;
+          width: 100%;
+        }
+
+        .choices {
+          grid-template-columns: 1fr;
+        }
+
+        .choice {
+          min-height: 120px;
+        }
+
+        .dashboard {
+          gap: 16px;
+          justify-items: center;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+          width: 100%;
+          justify-items: center;
+        }
+
+        .card {
+          padding: 16px;
+          width: 100%;
+        }
+
         .actions {
           justify-content: flex-start;
         }
@@ -922,7 +964,9 @@
         clearInterval(timerId);
         const choice = type === "safe" ? currentScene.safe : currentScene.risk;
         const pressureBefore = pressureLevel;
-        const resolution = resolveOutcome({ displayChance: choice.chance, type });
+        const resolution = timeout
+          ? { win: false, effectiveChance: choice.chance, miracle: false, denyHigh: false }
+          : resolveOutcome({ displayChance: choice.chance, type });
         const win = resolution.win;
         const rt = Math.round(performance.now() - startTime);
         const rewardEarned = win ? choice.reward : 0;
@@ -930,14 +974,14 @@
         energyTotal.textContent = totalEnergy;
         updatePressureOnOutcome({ win, type });
         missStreak = win ? 0 : missStreak + 1;
-        if (!win) {
+        if (!win || timeout) {
           lives -= 1;
           lives = Math.max(0, lives);
           updateLivesUI();
         }
         const outcomeText = win ? `+${choice.reward} energy` : "0 energy";
         outcomeEl.innerHTML = timeout
-          ? `<strong>Auto-selected:</strong> ${outcomeText}`
+          ? `<strong>Timed out:</strong> -1 life, ${outcomeText}`
           : `<strong>Outcome:</strong> ${outcomeText}`;
 
         sessionLog.push({
@@ -994,7 +1038,7 @@
           modalCard.classList.add("loss");
           modalTitle.textContent = "Loss";
           modalBody.textContent = timeout
-            ? "Auto-selected and no energy gained."
+            ? "Timed out: -1 life, no energy gained."
             : "No energy gained this round.";
         }
         resultModal.classList.add("active");
