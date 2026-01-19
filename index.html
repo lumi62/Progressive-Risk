@@ -1071,7 +1071,23 @@
 
       function renderDashboard() {
         renderRiskChart();
-        if (!sessionLog.length) return;
+        if (!sessionLog.length) {
+          const archetypeName = "Run Broke Before It Spoke";
+          const archetype = getArchetypeProfile(archetypeName);
+          snapshotText.textContent = archetype.archetypeName;
+          profileBullets.innerHTML = [
+            archetype.strength,
+            archetype.limitation,
+            archetype.whatHeldYouBack,
+          ]
+            .map((b) => `<li>${b}</li>`)
+            .join("");
+          narrativeText.textContent = archetype.coreBehavior;
+          decisionPatterns.textContent = "Not enough signal yet to reveal a pattern.";
+          speedInsights.textContent = "Timing needs more choices to read cleanly.";
+          consistencyInsights.textContent = "Consistency shows up after a longer run.";
+          return;
+        }
 
         const phases = {
           early: [],
@@ -1171,7 +1187,12 @@
           sessionLog,
         });
         const timingAxis = deriveTimingAxis({ medianRtRatio, timeouts });
-        const archetype = resolveArchetype({ ...axes, timingAxis });
+        const archetypeName = resolveArchetype({
+          ...axes,
+          timingAxis,
+          sceneCount: sessionLog.length,
+        });
+        const archetype = getArchetypeProfile(archetypeName);
 
         const profile = buildProfile({ archetype });
 
@@ -1217,7 +1238,7 @@
           profile: profile.title,
           profileBullets: profile.bullets,
           axes: { ...axes, timingAxis },
-          archetype,
+          archetype: archetypeName,
           riskRates: { early: riskRateEarly, mid: riskRateMid, late: riskRateLate },
           switching: { rate: switchRate, longestStreak },
           speed: { medianMs: medianRt, medianRatio: medianRtRatio, timeouts },
@@ -1338,59 +1359,96 @@
         return clamp(-1, 1, speedBias + timeoutPenalty);
       }
 
-      function resolveArchetype({ riskAxis, pressureAxis, controlAxis, timingAxis }) {
-        if (riskAxis > 0.45 && pressureAxis > 0.25 && controlAxis < -0.15) {
-          return {
-            archetypeName: "Pressure-Forged Finisher",
-            coreBehavior: "You wait for tension, then commit hard when it crests.",
-            strength: "You convert pressure into decisive wins.",
-            limitation: "You avoid early volatility and stay in one lane too long.",
-            whatHeldYouBack: "The early window passes while you hold your breath.",
-          };
-        }
-        if (riskAxis > 0.45 && controlAxis > 0.25 && pressureAxis < 0.2) {
-          return {
-            archetypeName: "Adaptive Aggressor",
-            coreBehavior: "You chase upside and pivot fast when the room shifts.",
-            strength: "You create openings instead of waiting for them.",
-            limitation: "You avoid staying in the fire long enough to compound.",
-            whatHeldYouBack: "You reset right before the streak could pay off.",
-          };
-        }
-        if (riskAxis < -0.45 && pressureAxis < -0.2) {
-          return {
-            archetypeName: "Cautious Stabilizer",
-            coreBehavior: "You preserve energy when tension rises.",
-            strength: "You keep losses from spiraling.",
-            limitation: "You avoid the volatility that unlocks big releases.",
-            whatHeldYouBack: "You protect the floor and never reach the ceiling.",
-          };
-        }
-        if (riskAxis < -0.45 && controlAxis > 0.25 && pressureAxis > -0.05) {
-          return {
-            archetypeName: "Measured Opportunist",
-            coreBehavior: "You take calculated risks but keep a hand on the brake.",
-            strength: "You adjust without losing control.",
-            limitation: "You avoid committing when momentum finally arrives.",
-            whatHeldYouBack: "You move, but you don’t stay long enough to break through.",
-          };
-        }
-        if (controlAxis < -0.35 && Math.abs(riskAxis) < 0.3) {
-          return {
-            archetypeName: "Single-Track Driver",
-            coreBehavior: "You lock into one lane and ride it through the noise.",
-            strength: "You stay consistent under chaos.",
-            limitation: "You avoid pivots even when the run changes.",
-            whatHeldYouBack: "The run shifts, and you don’t.",
-          };
-        }
-        return {
+      const archetypeProfiles = {
+        "Run Broke Before It Spoke": {
+          archetypeName: "Run Broke Before It Spoke",
+          coreBehavior: "The run ended before a pattern could take shape.",
+          strength: "You acted fast in a short window.",
+          limitation: "There was no time for a full read.",
+          whatHeldYouBack: "The run cut off the signal before it could settle.",
+        },
+        "Pressure-Forged Finisher": {
+          archetypeName: "Pressure-Forged Finisher",
+          coreBehavior: "You wait for tension, then commit hard when it crests.",
+          strength: "You convert pressure into decisive wins.",
+          limitation: "You avoid early volatility and stay in one lane too long.",
+          whatHeldYouBack: "The early window passes while you hold your breath.",
+        },
+        "Adaptive Aggressor": {
+          archetypeName: "Adaptive Aggressor",
+          coreBehavior: "You chase upside and pivot fast when the room shifts.",
+          strength: "You create openings instead of waiting for them.",
+          limitation: "You avoid staying in the fire long enough to compound.",
+          whatHeldYouBack: "You reset right before the streak could pay off.",
+        },
+        "Cautious Stabilizer": {
+          archetypeName: "Cautious Stabilizer",
+          coreBehavior: "You preserve energy when tension rises.",
+          strength: "You keep losses from spiraling.",
+          limitation: "You avoid the volatility that unlocks big releases.",
+          whatHeldYouBack: "You protect the floor and never reach the ceiling.",
+        },
+        "Measured Opportunist": {
+          archetypeName: "Measured Opportunist",
+          coreBehavior: "You take calculated risks but keep a hand on the brake.",
+          strength: "You adjust without losing control.",
+          limitation: "You avoid committing when momentum finally arrives.",
+          whatHeldYouBack: "You move, but you don’t stay long enough to break through.",
+        },
+        "Single-Track Driver": {
+          archetypeName: "Single-Track Driver",
+          coreBehavior: "You lock into one lane and ride it through the noise.",
+          strength: "You stay consistent under chaos.",
+          limitation: "You avoid pivots even when the run changes.",
+          whatHeldYouBack: "The run shifts, and you don’t.",
+        },
+        "Calculated Switcher": {
           archetypeName: "Calculated Switcher",
           coreBehavior: "You keep options open and choose only when the moment is clear.",
           strength: "You stay hard to read and hard to trap.",
           limitation: "You avoid commitment until the window narrows.",
           whatHeldYouBack: "You see the opening, but you keep it at arm’s length.",
-        };
+        },
+      };
+
+      function getArchetypeProfile(archetypeName) {
+        return archetypeProfiles[archetypeName] || archetypeProfiles["Calculated Switcher"];
+      }
+
+      function resolveArchetype({ riskAxis, pressureAxis, controlAxis, timingAxis, sceneCount }) {
+        if (sceneCount < 8) {
+          return "Run Broke Before It Spoke";
+        }
+
+        const absRisk = Math.abs(riskAxis);
+        const absPressure = Math.abs(pressureAxis);
+        const absControl = Math.abs(controlAxis);
+        const dominant = Math.max(absRisk, absPressure, absControl);
+
+        if (dominant < 0.12) {
+          return "Calculated Switcher";
+        }
+
+        const pressureDominant = absPressure === dominant;
+        const riskDominant = absRisk === dominant;
+        const controlDominant = absControl === dominant;
+
+        if (pressureDominant && pressureAxis > 0.12 && riskAxis > 0.12 && controlAxis < -0.12) {
+          return "Pressure-Forged Finisher";
+        }
+        if (riskDominant && riskAxis > 0.12 && controlAxis > 0.12 && pressureAxis < 0.12) {
+          return "Adaptive Aggressor";
+        }
+        if (pressureDominant && pressureAxis < -0.12 && riskAxis < -0.12) {
+          return "Cautious Stabilizer";
+        }
+        if (riskDominant && riskAxis < -0.12 && controlAxis > 0.12 && pressureAxis > -0.05) {
+          return "Measured Opportunist";
+        }
+        if (controlDominant && controlAxis < -0.12 && absRisk < 0.2) {
+          return "Single-Track Driver";
+        }
+        return "Calculated Switcher";
       }
 
       function buildNarrative({ archetype, axes, riskRateEarly, riskRateLate, patternLocked }) {
