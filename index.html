@@ -567,7 +567,7 @@
       .grid {
         display: grid;
         gap: 16px;
-        grid-template-columns: repeat(2, minmax(240px, 1fr));
+        grid-template-columns: repeat(3, minmax(240px, 1fr));
       }
 
       .card {
@@ -702,7 +702,7 @@
         </div>
         <div class="status">
           <div>Scene <span id="scene-count">1</span></div>
-          <div>Lives <span id="lives-count">6</span></div>
+          <div>Lives <span id="lives-count">10</span></div>
           <div>Energy <span id="energy-total">0</span></div>
           <div class="timer" aria-label="Timer">
             <span id="timer-bar"></span>
@@ -762,7 +762,6 @@
         <div class="scene">
           <h2>Tension & Release Map</h2>
           <svg class="chart" id="risk-chart" viewBox="0 0 600 170" preserveAspectRatio="none"></svg>
-          <p id="tension-text"></p>
         </div>
         <div class="grid">
           <div class="card">
@@ -776,10 +775,6 @@
           <div class="card">
             <h3>Choice Consistency</h3>
             <p id="consistency-insights"></p>
-          </div>
-          <div class="card">
-            <h3>Next-Run Teaser</h3>
-            <p id="next-teaser"></p>
           </div>
         </div>
         <div class="actions">
@@ -797,7 +792,7 @@
     </div>
 
     <script>
-      const maxLives = 6;
+      const maxLives = 10;
       const sceneCountEl = document.getElementById("scene-count");
       const livesCountEl = document.getElementById("lives-count");
       const timerBar = document.getElementById("timer-bar");
@@ -813,9 +808,7 @@
       const decisionPatterns = document.getElementById("decision-patterns");
       const speedInsights = document.getElementById("speed-insights");
       const consistencyInsights = document.getElementById("consistency-insights");
-      const nextTeaser = document.getElementById("next-teaser");
       const riskChart = document.getElementById("risk-chart");
-      const tensionText = document.getElementById("tension-text");
       const resultModal = document.getElementById("result-modal");
       const modalCard = document.getElementById("modal-card");
       const modalTitle = document.getElementById("modal-title");
@@ -1149,10 +1142,6 @@
           }
         });
 
-        const pressureWins = sessionLog.filter(
-          (s) => s.outcome === "win" && s.pressure >= 0.6
-        );
-
         const manualEntries = sessionLog.filter((s) => !s.timeout);
         const reactionTimes = manualEntries.map((s) => s.reactionTime);
         const reactionRatios = manualEntries.map(
@@ -1223,22 +1212,6 @@
           patternLocked,
         });
 
-        tensionText.textContent = buildTensionText({
-          axes,
-          peakPressureEntry,
-          longestDryStreak,
-          biggestRelease,
-          endedOnWin: sessionLog[sessionLog.length - 1].outcome === "win",
-        });
-
-        nextTeaser.textContent = buildNextRunTeaser({
-          axes,
-          sessionLog,
-          peakPressureEntry,
-          pressureWins,
-          patternLocked,
-          timeouts,
-        });
 
         const summary = {
           profile: profile.title,
@@ -1249,7 +1222,6 @@
           switching: { rate: switchRate, longestStreak },
           speed: { medianMs: medianRt, medianRatio: medianRtRatio, timeouts },
           pressure: { avgRisk: avgPressureRisk, avgSafe: avgPressureSafe },
-          pressureWins: pressureWins.map((s) => s.scene),
         };
         window.runInsights = summary;
         dashboard.dataset.summary = JSON.stringify(summary);
@@ -1282,23 +1254,6 @@
           archetype.whatHeldYouBack,
         ];
         return { title: archetype.archetypeName, bullets };
-      }
-
-      function buildTensionText({ axes, peakPressureEntry, longestDryStreak, biggestRelease, endedOnWin }) {
-        const peakText = peakPressureEntry
-          ? "The run climbed to a real crest before it broke."
-          : "The run never reached a true crest.";
-        const releaseText = biggestRelease
-          ? "The release landed because you stayed in the moment."
-          : "The release stayed muted, and the run never fully opened.";
-        const dryText =
-          longestDryStreak > 0
-            ? "The dry stretch lingered long enough to change how you played."
-            : "You avoided a long dry stretch, so the run never locked in.";
-        const endText = endedOnWin
-          ? "You closed on relief and reset the loop."
-          : "You closed on tension and left the loop open.";
-        return `${peakText} ${releaseText} ${dryText} ${endText}`;
       }
 
 
@@ -1355,44 +1310,6 @@
         return "You switched only when you meant to, which kept the run clean but contained.";
       }
 
-      function buildNextRunTeaser({
-        axes,
-        sessionLog,
-        peakPressureEntry,
-        pressureWins,
-        patternLocked,
-        timeouts,
-      }) {
-        const peakIndex = peakPressureEntry
-          ? sessionLog.findIndex((s) => s === peakPressureEntry)
-          : -1;
-        const firstRiskIndex = sessionLog.findIndex((s) => s.riskLevel === 1);
-        const lastRiskIndex = [...sessionLog].reverse().findIndex((s) => s.riskLevel === 1);
-        const lastRiskAt = lastRiskIndex === -1 ? -1 : sessionLog.length - 1 - lastRiskIndex;
-
-        if (patternLocked) {
-          return "The opening arrived and you stayed in your lane.";
-        }
-        if (timeouts > 0) {
-          return "The clock took the opening — you let it go.";
-        }
-        if (firstRiskIndex === -1 && peakIndex >= 0) {
-          return "The crest opened and you never stepped into it.";
-        }
-        if (pressureWins.length === 0 && peakPressureEntry) {
-          return "That crest was the window — you didn’t take it.";
-        }
-        if (firstRiskIndex >= 0 && peakIndex >= 0 && firstRiskIndex > peakIndex) {
-          return "You arrived after the crest and missed the clean break.";
-        }
-        if (lastRiskAt >= 0 && peakIndex >= 0 && lastRiskAt < peakIndex) {
-          return "You left the crest too early and the release never stretched.";
-        }
-        if (axes.pressureAxis > 0.35) {
-          return "You pushed before the crest — the real opening passed behind you.";
-        }
-        return "The run offered a break and you left it on the table.";
-      }
 
 
       function deriveAxes({ riskRate, switchRate, longestStreak, patternLocked, sessionLog }) {
@@ -1431,7 +1348,7 @@
             whatHeldYouBack: "The early window passes while you hold your breath.",
           };
         }
-        if (riskAxis > 0.45 && controlAxis > 0.25) {
+        if (riskAxis > 0.45 && controlAxis > 0.25 && pressureAxis < 0.2) {
           return {
             archetypeName: "Adaptive Aggressor",
             coreBehavior: "You chase upside and pivot fast when the room shifts.",
@@ -1449,7 +1366,7 @@
             whatHeldYouBack: "You protect the floor and never reach the ceiling.",
           };
         }
-        if (riskAxis < -0.45 && controlAxis > 0.25) {
+        if (riskAxis < -0.45 && controlAxis > 0.25 && pressureAxis > -0.05) {
           return {
             archetypeName: "Measured Opportunist",
             coreBehavior: "You take calculated risks but keep a hand on the brake.",
@@ -1458,7 +1375,7 @@
             whatHeldYouBack: "You move, but you don’t stay long enough to break through.",
           };
         }
-        if (controlAxis < -0.35) {
+        if (controlAxis < -0.35 && Math.abs(riskAxis) < 0.3) {
           return {
             archetypeName: "Single-Track Driver",
             coreBehavior: "You lock into one lane and ride it through the noise.",
