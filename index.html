@@ -567,7 +567,7 @@
       .grid {
         display: grid;
         gap: 16px;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        grid-template-columns: repeat(2, minmax(240px, 1fr));
       }
 
       .card {
@@ -750,6 +750,10 @@
       </section>
 
       <section id="dashboard" class="dashboard">
+        <div class="scene">
+          <h2>How You Played This Run</h2>
+          <p id="narrative-text"></p>
+        </div>
         <div class="scene snapshot">
           <h2>Player Profile</h2>
           <p id="snapshot-text"></p>
@@ -772,14 +776,6 @@
           <div class="card">
             <h3>Choice Consistency</h3>
             <p id="consistency-insights"></p>
-          </div>
-          <div class="card">
-            <h3>Almost-Wins & Near-Misses</h3>
-            <p id="near-misses"></p>
-          </div>
-          <div class="card">
-            <h3>Addiction Loop Summary</h3>
-            <p id="loop-summary"></p>
           </div>
           <div class="card">
             <h3>Next-Run Teaser</h3>
@@ -812,12 +808,11 @@
       const dashboard = document.getElementById("dashboard");
       const homeSection = document.getElementById("home");
       const snapshotText = document.getElementById("snapshot-text");
+      const narrativeText = document.getElementById("narrative-text");
       const profileBullets = document.getElementById("profile-bullets");
       const decisionPatterns = document.getElementById("decision-patterns");
       const speedInsights = document.getElementById("speed-insights");
       const consistencyInsights = document.getElementById("consistency-insights");
-      const nearMisses = document.getElementById("near-misses");
-      const loopSummary = document.getElementById("loop-summary");
       const nextTeaser = document.getElementById("next-teaser");
       const riskChart = document.getElementById("risk-chart");
       const tensionText = document.getElementById("tension-text");
@@ -1154,9 +1149,6 @@
           }
         });
 
-        const nearMissList = sessionLog.filter(
-          (s) => s.outcome === "loss" && (s.effectiveChance >= 0.6 || s.pressure >= 0.6)
-        );
         const pressureWins = sessionLog.filter(
           (s) => s.outcome === "win" && s.pressure >= 0.6
         );
@@ -1182,83 +1174,66 @@
         const lastEntry = sessionLog[sessionLog.length - 1];
         const prevEntry = sessionLog.length > 1 ? sessionLog[sessionLog.length - 2] : null;
 
-        const loopCount = (() => {
-          let loops = 0;
-          let state = "idle";
-          for (let i = 0; i < sessionLog.length; i += 1) {
-            const entry = sessionLog[i];
-            if (state === "idle" && entry.outcome === "loss") {
-              state = "miss";
-              continue;
-            }
-            if (state === "miss" && entry.riskLevel === 1) {
-              state = "risk";
-              continue;
-            }
-            if (state === "risk" && entry.outcome === "win") {
-              loops += 1;
-              state = "idle";
-            }
-          }
-          return loops;
-        })();
-
-        const profile = buildProfile({
+        const axes = deriveAxes({
           riskRate,
-          lateRisk: riskRateLate,
-          lossAvg,
-          winAvg,
-          avgPressureRisk,
-          avgPressureSafe,
           switchRate,
+          longestStreak,
           patternLocked,
-          timeouts,
-          medianRtRatio,
+          sessionLog,
+        });
+        const timingAxis = deriveTimingAxis({ medianRtRatio, timeouts });
+        const archetype = resolveArchetype({ ...axes, timingAxis });
+
+        const profile = buildProfile({ archetype });
+
+        narrativeText.textContent = buildNarrative({
+          archetype,
+          axes,
+          riskRateEarly,
+          riskRateLate,
+          patternLocked,
         });
 
         snapshotText.textContent = profile.title;
         profileBullets.innerHTML = profile.bullets.map((b) => `<li>${b}</li>`).join("");
 
-        decisionPatterns.textContent = [
-          describePhaseRisk({ riskRateEarly, riskRateMid, riskRateLate, patternLocked }),
-          describeSwitching({ switchRate, longestStreak }),
-          describeLossShift({ lossAvg, winAvg }),
-        ].join(" ");
+        decisionPatterns.textContent = buildDecisionPatterns({
+          lossAvg,
+          winAvg,
+          riskRateEarly,
+          riskRateLate,
+          patternLocked,
+        });
 
         speedInsights.textContent = buildSpeedText({
           avgRt,
-          medianRt,
+          timingAxis,
           medianRtRatio,
-          fastestRt,
-          slowestRt,
           speedShift,
           timeouts,
+          biggestRelease,
+          medianRt,
+          manualEntries,
         });
 
         consistencyInsights.textContent = buildConsistencyText({
-          riskRate,
+          axes,
           switchRate,
           longestStreak,
-          recentChoices,
-          lastEntry,
-          prevEntry,
           patternLocked,
         });
 
         tensionText.textContent = buildTensionText({
+          axes,
           peakPressureEntry,
           longestDryStreak,
           biggestRelease,
           endedOnWin: sessionLog[sessionLog.length - 1].outcome === "win",
         });
 
-        nearMisses.textContent = buildNearMissText({ nearMissList, pressureWins });
-
-        loopSummary.textContent = `Anticipation -> Miss -> Pressure -> Risk -> Release. Completed ${loopCount} ${loopCount === 1 ? "cycle" : "cycles"} this run.`;
-
         nextTeaser.textContent = buildNextRunTeaser({
-          riskRateEarly,
-          riskRateLate,
+          axes,
+          sessionLog,
           peakPressureEntry,
           pressureWins,
           patternLocked,
@@ -1268,164 +1243,64 @@
         const summary = {
           profile: profile.title,
           profileBullets: profile.bullets,
+          axes: { ...axes, timingAxis },
+          archetype,
           riskRates: { early: riskRateEarly, mid: riskRateMid, late: riskRateLate },
           switching: { rate: switchRate, longestStreak },
           speed: { medianMs: medianRt, medianRatio: medianRtRatio, timeouts },
           pressure: { avgRisk: avgPressureRisk, avgSafe: avgPressureSafe },
-          nearMisses: nearMissList.map((s) => s.scene),
           pressureWins: pressureWins.map((s) => s.scene),
-          loopCount,
         };
         window.runInsights = summary;
         dashboard.dataset.summary = JSON.stringify(summary);
       }
 
-      function describePhaseRisk({ riskRateEarly, riskRateMid, riskRateLate, patternLocked }) {
-        if (patternLocked) {
-          return "You stayed on one track, so there were no meaningful phase shifts.";
-        }
-        const early =
-          riskRateEarly > 0.55 ? "risk-heavy" : riskRateEarly < 0.45 ? "safe-first" : "balanced";
-        const late =
-          riskRateLate > 0.55 ? "risk-forward" : riskRateLate < 0.45 ? "safe-leaning" : "steady";
-        if (early !== late) {
-          return `You opened ${early} and finished ${late}.`;
-        }
-        if (riskRateMid > 0.6 && riskRateEarly < 0.45) {
-          return "You started cautious, then moved into risk mid-run.";
-        }
-        return `You stayed ${late} across the run, even as pressure changed.`;
+      function buildDecisionPatterns({ lossAvg, winAvg, riskRateEarly, riskRateLate, patternLocked }) {
+        const lossLine =
+          lossAvg === null || winAvg === null
+            ? "The early swings were too few to change your posture."
+            : lossAvg > winAvg + 0.15
+              ? "Losses made you press harder instead of pulling back."
+              : winAvg > lossAvg + 0.15
+                ? "Losses made you protect the run instead of chasing it."
+                : "You kept the same gear after wins and losses, which kept the run predictable.";
+        const timingLine =
+          patternLocked
+            ? "You stayed in one lane even when the run tried to open."
+            : riskRateEarly < riskRateLate - 0.18
+              ? "You held risk back until the run tightened."
+              : riskRateEarly > riskRateLate + 0.18
+                ? "You pushed early and cooled off once the run settled."
+                : "You committed on your terms rather than the run’s tempo.";
+        return `${lossLine} ${timingLine}`;
       }
 
-      function describeSwitching({ switchRate, longestStreak }) {
-        const switchPct = Math.round(switchRate * 100);
-        if (switchRate < 0.2) {
-          return `You rarely switched (${switchPct}% switching), with a ${longestStreak}-turn streak.`;
-        }
-        if (switchRate > 0.6) {
-          return `You switched often (${switchPct}% switching), keeping streaks short.`;
-        }
-        return `You switched at a steady pace (${switchPct}% switching), with a ${longestStreak}-turn streak.`;
+      function buildProfile({ archetype }) {
+        const bullets = [
+          archetype.strength,
+          archetype.limitation,
+          archetype.whatHeldYouBack,
+        ];
+        return { title: archetype.archetypeName, bullets };
       }
 
-      function describePressurePull({ avgPressureRisk, avgPressureSafe }) {
-        if (avgPressureRisk === null || avgPressureSafe === null) {
-          return "Pressure effects are still emerging.";
-        }
-        if (avgPressureRisk > avgPressureSafe + 0.1) {
-          return "You reached for risk when pressure crept higher.";
-        }
-        if (avgPressureSafe > avgPressureRisk + 0.1) {
-          return "Higher pressure made you pull back to safety.";
-        }
-        return "Pressure nudged you, but it did not dominate your choices.";
-      }
-
-      function describeLossShift({ lossAvg, winAvg }) {
-        if (lossAvg === null || winAvg === null) {
-          return "Not enough swings yet to show how losses changed your choices.";
-        }
-        if (lossAvg > winAvg + 0.15) {
-          return "After losses, you took bigger risks.";
-        }
-        if (winAvg > lossAvg + 0.15) {
-          return "After losses, you played it safer.";
-        }
-        return "Losses did not change your risk level much.";
-      }
-
-      function buildProfile({
-        riskRate,
-        lateRisk,
-        lossAvg,
-        winAvg,
-        avgPressureRisk,
-        avgPressureSafe,
-        switchRate,
-        patternLocked,
-        timeouts,
-        medianRtRatio,
-      }) {
-        let title = "Calculated Gambler";
-        const bullets = [];
-
-        if (patternLocked) {
-          title = "Single-Track Runner";
-          bullets.push("You stuck with the same lane, so the read is narrower.");
-        } else if (lateRisk > 0.6 && riskRate > 0.55) {
-          title = "Late-Game Risk Taker";
-          bullets.push("Your boldest choices came after the stakes rose.");
-        } else if (riskRate < 0.4) {
-          title = "Loss-Avoidant Optimizer";
-          bullets.push("You protected progress more than you chased spikes.");
-        } else if (lossAvg !== null && winAvg !== null && lossAvg > winAvg + 0.15) {
-          title = "Pressure-Driven";
-          bullets.push("Losses pulled you into bigger swings.");
-        } else {
-          bullets.push("You balanced payoff and safety without locking into one style.");
-        }
-
-        if (patternLocked) {
-          bullets.push(
-            switchRate < 0.2
-              ? "Switching was rare, so outcomes reflect repetition more than adjustment."
-              : "You stuck to a lane even when pressure shifted."
-          );
-        } else if (avgPressureRisk !== null && avgPressureSafe !== null) {
-          if (avgPressureRisk > avgPressureSafe + 0.1) {
-            bullets.push("Higher pressure nudged you toward risk.");
-          } else if (avgPressureSafe > avgPressureRisk + 0.1) {
-            bullets.push("Higher pressure nudged you toward safety.");
-          } else {
-            bullets.push("You stayed measured even as tension built.");
-          }
-        }
-
-        if (timeouts > 0) {
-          bullets.push("Timeouts counted as safe, so timing insights are incomplete.");
-        } else if (medianRtRatio !== null) {
-          const pace = medianRtRatio < 0.45 ? "fast" : medianRtRatio > 0.75 ? "deliberate" : "steady";
-          bullets.push(`Your pace stayed ${pace}.`);
-        } else {
-          bullets.push("Your run shows a steady loop of anticipation and reset.");
-        }
-
-        return { title, bullets: bullets.slice(0, 3) };
-      }
-
-      function buildTensionText({ peakPressureEntry, longestDryStreak, biggestRelease, endedOnWin }) {
+      function buildTensionText({ axes, peakPressureEntry, longestDryStreak, biggestRelease, endedOnWin }) {
         const peakText = peakPressureEntry
-          ? "Pressure hit a clear peak mid-run."
-          : "Pressure never spiked into a clear peak.";
+          ? "The run climbed to a real crest before it broke."
+          : "The run never reached a true crest.";
         const releaseText = biggestRelease
-          ? "Your biggest release arrived after pressure built up."
-          : "Releases were smaller but frequent.";
+          ? "The release landed because you stayed in the moment."
+          : "The release stayed muted, and the run never fully opened.";
         const dryText =
           longestDryStreak > 0
-            ? `The longest dry stretch lasted ${longestDryStreak} turns.`
-            : "You avoided long dry stretches.";
+            ? "The dry stretch lingered long enough to change how you played."
+            : "You avoided a long dry stretch, so the run never locked in.";
         const endText = endedOnWin
-          ? "The run ended on relief."
-          : "The run ended on tension, keeping the loop open.";
+          ? "You closed on relief and reset the loop."
+          : "You closed on tension and left the loop open.";
         return `${peakText} ${releaseText} ${dryText} ${endText}`;
       }
 
-      function buildNearMissText({ nearMissList, pressureWins }) {
-        const parts = [];
-        if (nearMissList.length) {
-          parts.push("Near-misses clustered when pressure was already high.");
-        } else {
-          parts.push("Near-misses were rare, so losses felt cleaner.");
-        }
-        parts.push("Losses paid nothing this run, so closeness came from pressure spikes.");
-        if (pressureWins.length) {
-          parts.push("Wins at high pressure landed right after tension climbed.");
-        } else {
-          parts.push("High-pressure wins stayed just out of reach.");
-        }
-        parts.push("These moments are why losses still felt close.");
-        return parts.join(" ");
-      }
 
       function formatChoice(choice) {
         return choice === "risk" ? "Risk" : "Safe";
@@ -1433,80 +1308,223 @@
 
       function buildSpeedText({
         avgRt,
-        medianRt,
+        timingAxis,
         medianRtRatio,
-        fastestRt,
-        slowestRt,
         speedShift,
         timeouts,
+        biggestRelease,
+        medianRt,
+        manualEntries,
       }) {
         if (avgRt === null) {
           return "No manual clicks recorded yet.";
         }
-        const ratioPct = medianRtRatio === null ? 0 : Math.round(medianRtRatio * 100);
         const pace =
           speedShift > 0.12
             ? "You slowed down as the run went on."
             : speedShift < -0.12
               ? "You sped up as the run went on."
-              : "Your pace stayed steady.";
+              : "You kept the same tempo even as the timer tightened.";
         const timeoutText =
-          timeouts > 0 ? `Timeouts: ${timeouts}.` : "No timeouts recorded.";
-        return `Median click: ${Math.round(medianRt)}ms (${ratioPct}% of the timer). ${pace} Range: ${Math.round(
-          fastestRt
-        )}-${Math.round(slowestRt)}ms. ${timeoutText}`;
+          timeouts > 0 ? "The clock took a few choices from you." : "You kept control of the clock.";
+        const tempo =
+          medianRtRatio !== null && medianRtRatio < 0.45
+            ? "You played fast; speed was part of your edge."
+            : medianRtRatio !== null && medianRtRatio > 0.75
+              ? "You played slow; control mattered more than impulse."
+              : "You chose your moments; timing didn’t carry the run for you.";
+        const hiddenTell = buildHiddenTell({
+          timingAxis,
+          biggestRelease,
+          medianRt,
+          manualEntries,
+        });
+        return `${tempo} ${pace} ${timeoutText} ${hiddenTell}`;
       }
 
-      function buildConsistencyText({
-        riskRate,
-        switchRate,
-        longestStreak,
-        recentChoices,
-        lastEntry,
-        prevEntry,
-        patternLocked,
-      }) {
-        const riskPct = Math.round(riskRate * 100);
-        const switchPct = Math.round(switchRate * 100);
-        const recentText = recentChoices.length
-          ? `Recent picks: ${recentChoices.map(formatChoice).join(", ")}.`
-          : "";
-        const lastText = lastEntry
-          ? `Last pick: ${formatChoice(lastEntry.choice)}${
-              prevEntry ? ` after ${formatChoice(prevEntry.choice)}.` : "."
-            }`
-          : "";
-
-        if (patternLocked) {
-          return `You stayed on one track (${riskPct}% risk, ${switchPct}% switching). Longest streak: ${longestStreak}. ${lastText} ${recentText} Mix choices for a fuller read.`;
+      function buildConsistencyText({ axes, switchRate, longestStreak, patternLocked }) {
+        if (patternLocked || axes.controlAxis < -0.35) {
+          return "You stayed in one lane; it reduced volatility but capped the break moments.";
         }
-        return `You chose risk ${riskPct}% of the time and switched ${switchPct}% of the time. Longest streak: ${longestStreak}. ${lastText} ${recentText}`;
+        if (axes.controlAxis > 0.35 || switchRate > 0.6) {
+          return "You pivoted often; it kept you adaptable but stalled momentum.";
+        }
+        if (longestStreak >= 4) {
+          return "You held streaks just long enough to build comfort, then let them go.";
+        }
+        return "You switched only when you meant to, which kept the run clean but contained.";
       }
 
       function buildNextRunTeaser({
-        riskRateEarly,
-        riskRateLate,
+        axes,
+        sessionLog,
         peakPressureEntry,
         pressureWins,
         patternLocked,
         timeouts,
       }) {
+        const peakIndex = peakPressureEntry
+          ? sessionLog.findIndex((s) => s === peakPressureEntry)
+          : -1;
+        const firstRiskIndex = sessionLog.findIndex((s) => s.riskLevel === 1);
+        const lastRiskIndex = [...sessionLog].reverse().findIndex((s) => s.riskLevel === 1);
+        const lastRiskAt = lastRiskIndex === -1 ? -1 : sessionLog.length - 1 - lastRiskIndex;
+
         if (patternLocked) {
-          return "Mix your choices next run to unlock deeper insights.";
+          return "The opening arrived and you stayed in your lane.";
         }
         if (timeouts > 0) {
-          return "Faster clicks will reveal more about your risk rhythm.";
+          return "The clock took the opening — you let it go.";
         }
-        if (riskRateEarly < 0.4 && riskRateLate > 0.55) {
-          return "Push risk earlier to reach your peak sooner.";
+        if (firstRiskIndex === -1 && peakIndex >= 0) {
+          return "The crest opened and you never stepped into it.";
         }
         if (pressureWins.length === 0 && peakPressureEntry) {
-          return "You stopped just before your pressure advantage zone.";
+          return "That crest was the window — you didn’t take it.";
         }
-        if (riskRateLate < 0.45) {
-          return "A late push could turn your steady run into a bigger release.";
+        if (firstRiskIndex >= 0 && peakIndex >= 0 && firstRiskIndex > peakIndex) {
+          return "You arrived after the crest and missed the clean break.";
         }
-        return "One more run to see if the pressure spike finally pays off.";
+        if (lastRiskAt >= 0 && peakIndex >= 0 && lastRiskAt < peakIndex) {
+          return "You left the crest too early and the release never stretched.";
+        }
+        if (axes.pressureAxis > 0.35) {
+          return "You pushed before the crest — the real opening passed behind you.";
+        }
+        return "The run offered a break and you left it on the table.";
+      }
+
+
+      function deriveAxes({ riskRate, switchRate, longestStreak, patternLocked, sessionLog }) {
+        const riskAxis = clamp(-1, 1, (riskRate - 0.5) / 0.5);
+        const pressures = sessionLog.map((s) => s.pressure);
+        const pressureMedian = median(pressures) ?? 0;
+        const highPressure = sessionLog.filter((s) => s.pressure >= pressureMedian);
+        const lowPressure = sessionLog.filter((s) => s.pressure < pressureMedian);
+        const riskHigh = avg(highPressure.map((s) => s.riskLevel));
+        const riskLow = avg(lowPressure.map((s) => s.riskLevel));
+        const pressureAxis =
+          riskHigh === null || riskLow === null
+            ? 0
+            : clamp(-1, 1, (riskHigh - riskLow) / 0.5);
+        const streakRatio = sessionLog.length ? longestStreak / sessionLog.length : 0;
+        const controlBase = clamp(-1, 1, (switchRate - 0.5) / 0.5);
+        const lockBias = patternLocked ? 0.35 : 0;
+        const controlAxis = clamp(-1, 1, controlBase - lockBias - streakRatio * 0.3);
+        return { riskAxis, pressureAxis, controlAxis };
+      }
+
+      function deriveTimingAxis({ medianRtRatio, timeouts }) {
+        if (medianRtRatio === null || timeouts === null) return 0;
+        const speedBias = clamp(-1, 1, (0.6 - medianRtRatio) / 0.3);
+        const timeoutPenalty = timeouts > 0 ? -0.15 : 0;
+        return clamp(-1, 1, speedBias + timeoutPenalty);
+      }
+
+      function resolveArchetype({ riskAxis, pressureAxis, controlAxis, timingAxis }) {
+        if (riskAxis > 0.45 && pressureAxis > 0.25 && controlAxis < -0.15) {
+          return {
+            archetypeName: "Pressure-Forged Finisher",
+            coreBehavior: "You wait for tension, then commit hard when it crests.",
+            strength: "You convert pressure into decisive wins.",
+            limitation: "You avoid early volatility and stay in one lane too long.",
+            whatHeldYouBack: "The early window passes while you hold your breath.",
+          };
+        }
+        if (riskAxis > 0.45 && controlAxis > 0.25) {
+          return {
+            archetypeName: "Adaptive Aggressor",
+            coreBehavior: "You chase upside and pivot fast when the room shifts.",
+            strength: "You create openings instead of waiting for them.",
+            limitation: "You avoid staying in the fire long enough to compound.",
+            whatHeldYouBack: "You reset right before the streak could pay off.",
+          };
+        }
+        if (riskAxis < -0.45 && pressureAxis < -0.2) {
+          return {
+            archetypeName: "Cautious Stabilizer",
+            coreBehavior: "You preserve energy when tension rises.",
+            strength: "You keep losses from spiraling.",
+            limitation: "You avoid the volatility that unlocks big releases.",
+            whatHeldYouBack: "You protect the floor and never reach the ceiling.",
+          };
+        }
+        if (riskAxis < -0.45 && controlAxis > 0.25) {
+          return {
+            archetypeName: "Measured Opportunist",
+            coreBehavior: "You take calculated risks but keep a hand on the brake.",
+            strength: "You adjust without losing control.",
+            limitation: "You avoid committing when momentum finally arrives.",
+            whatHeldYouBack: "You move, but you don’t stay long enough to break through.",
+          };
+        }
+        if (controlAxis < -0.35) {
+          return {
+            archetypeName: "Single-Track Driver",
+            coreBehavior: "You lock into one lane and ride it through the noise.",
+            strength: "You stay consistent under chaos.",
+            limitation: "You avoid pivots even when the run changes.",
+            whatHeldYouBack: "The run shifts, and you don’t.",
+          };
+        }
+        return {
+          archetypeName: "Calculated Switcher",
+          coreBehavior: "You keep options open and choose only when the moment is clear.",
+          strength: "You stay hard to read and hard to trap.",
+          limitation: "You avoid commitment until the window narrows.",
+          whatHeldYouBack: "You see the opening, but you keep it at arm’s length.",
+        };
+      }
+
+      function buildNarrative({ archetype, axes, riskRateEarly, riskRateLate, patternLocked }) {
+        const riskLine =
+          riskRateEarly < riskRateLate - 0.18
+            ? "You held risk back until the run tightened."
+            : riskRateEarly > riskRateLate + 0.18
+              ? "You pushed early, then cooled off once the run settled."
+              : axes.riskAxis > 0.35
+                ? "Risk stayed close to the surface from start to finish."
+                : axes.riskAxis < -0.35
+                  ? "Safety stayed in charge even when the run asked for more."
+                  : "You kept risk contained, which kept the run controlled.";
+        const pressureLine =
+          axes.pressureAxis > 0.35
+            ? "Pressure pulled you forward instead of pushing you away."
+            : axes.pressureAxis < -0.35
+              ? "Pressure pushed you back instead of daring you."
+              : "Pressure didn’t get a vote in your choices.";
+        const controlLine = patternLocked || axes.controlAxis < -0.35
+          ? "You locked into one lane and stayed there."
+          : axes.controlAxis > 0.35
+            ? "You kept the run adaptive and refused to settle."
+            : "You chose your switches carefully and kept control close.";
+        return `${archetype.coreBehavior} ${riskLine} ${pressureLine} ${controlLine}`;
+      }
+
+      function buildHiddenTell({ timingAxis, biggestRelease, medianRt, manualEntries }) {
+        if (!manualEntries.length || medianRt === null) {
+          return "Your timing tells will sharpen as you log more runs.";
+        }
+        if (biggestRelease && biggestRelease.reactionTime > medianRt * 1.15) {
+          return "Your biggest release came after you hesitated, not when you snapped.";
+        }
+        if (biggestRelease && biggestRelease.reactionTime < medianRt * 0.85) {
+          return "Your biggest release came on an instinct click, not a slow one.";
+        }
+        const riskRts = manualEntries.filter((s) => s.riskLevel === 1).map((s) => s.reactionTime);
+        const safeRts = manualEntries.filter((s) => s.riskLevel === 0).map((s) => s.reactionTime);
+        const avgRiskRt = avg(riskRts);
+        const avgSafeRt = avg(safeRts);
+        if (avgRiskRt !== null && avgSafeRt !== null && avgRiskRt < avgSafeRt * 0.9) {
+          return "You speed up when you choose risk, which turns impulse into your tell.";
+        }
+        if (timingAxis > 0.35) {
+          return "Speed kept you in control, but it also locked in your first impulse.";
+        }
+        if (timingAxis < -0.35) {
+          return "Deliberate timing protected you, but it dulled your break moments.";
+        }
+        return "Your timing stayed even, which hid your strongest tells.";
       }
 
       function renderRiskChart() {
